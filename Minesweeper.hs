@@ -5,9 +5,9 @@ type Mine = Bool
 type NeighbourMines = Int
 
 data State = Revealed 
-           | Hidden deriving (Show)
+           | Hidden deriving (Show, Read)
 
-data Square = Square Position State Mine NeighbourMines deriving (Show)
+data Square = Square Position State Mine NeighbourMines deriving (Show, Read)
 
 type Board = [Square]
 
@@ -29,12 +29,15 @@ mkBoard n = [(Square (x,y) Revealed False 1)
    This function takes a list of squares that has mines and the existing board.
    It matches the position of hte mine and insert that into the board, otherwise it traverses through the board.
 -}
-insertSquare :: Board -> Board -> Board
-insertSquare [] board = board
-insertSquare mines [] = []
-insertSquare (mine@(Square pos1 _ _ _):s1) (square@(Square pos2 _ _ _):s2)
-  | pos1 == pos2 = mine : insertSquare s1 s2
-  | otherwise = square : insertSquare (mine:s1) s2
+insertMines :: [Position] -> Board -> Board
+insertMines [] board     = board
+insertMines (p:ps) board = insertMines ps (insertMine p board)
+
+insertMine :: Position -> Board -> Board
+insertMine position (square@(Square pos _ _ _):squares)
+  | position == pos = (Square pos Revealed True 1) : squares
+  | otherwise = square : insertMine position squares
+
 
 {- randomBoard n
    A clusterfuck of functions lol, just trying to make a board that includes mines at random positions.
@@ -43,15 +46,18 @@ insertSquare (mine@(Square pos1 _ _ _):s1) (square@(Square pos2 _ _ _):s2)
 
    This will get a board from 'insertSquare' and the returns it.
 -}
-randomBoard :: Int -> IO Board
-randomBoard 0 = return []
-randomBoard n = do
-    x <- randomRIO (1, 3)
-    y <- randomRIO (1, 3)
 
-    rs <- randomBoard (n-1)
 
-    return $ insertSquare ((Square (x, y) Revealed True 1):rs) (mkBoard 3)
+randomCoords :: Int -> IO [Position]
+randomCoords 0 = return []
+randomCoords n = do
+    x <- randomRIO (1, 6)
+    y <- randomRIO (1, 6)
+
+    rs <- randomCoords (n-1)
+
+    return ((x, y) : rs)
+
 
 {- prettyPrint n
    Outputs the string on the terminal
@@ -84,6 +90,11 @@ main :: IO ()
 main = do
     putStrLn "Welcome to Minesweeper v.000000000001"
 
-    board <- randomBoard 3
+    let board = mkBoard 6
 
-    prettyPrint $ printBoard board 3
+    mines <- randomCoords 6
+
+    let newBoard = insertMines mines board
+
+    prettyPrint $ printBoard newBoard 6
+
