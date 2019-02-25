@@ -1,4 +1,5 @@
 import System.Random
+import Data.List
 
 type Position = (Int, Int)
 type Mine = Bool
@@ -18,16 +19,11 @@ type Board = [Square]
    this makes squares with a default value for every position set to the maximum by the input
 -}
 mkBoard :: Int -> Board
-mkBoard n = [(Square (x,y) Revealed False 1) 
+mkBoard n = [(Square (x,y) Revealed False 0) 
             | x <- [1..n], y <- [1..n]]
 
-{- insertSquare mines board
-   First of all, this function has a big problem. It doesn't insert more than one mine into the board.
-   It needs to save the board with the inserted mine and the call the function again with that board and the new mine.
-   I haven't figured out how to implement that bit yet
-
-   This function takes a list of squares that has mines and the existing board.
-   It matches the position of hte mine and insert that into the board, otherwise it traverses through the board.
+{- insertMines mines board
+   insert a list of mines into the board
 -}
 insertMines :: [Position] -> Board -> Board
 insertMines [] board     = board
@@ -39,20 +35,16 @@ insertMine position (square@(Square pos _ _ _):squares)
   | otherwise = square : insertMine position squares
 
 
-{- randomBoard n
-   A clusterfuck of functions lol, just trying to make a board that includes mines at random positions.
-   The input is how many mines we will insert into the board, 
-   we get n positions in a list and send those to the function 'insertSquare', that does what it says.
-
-   This will get a board from 'insertSquare' and the returns it.
+{- randomCoords n
+   Returns a list of random tuples aka positions
 -}
 
 
 randomCoords :: Int -> IO [Position]
 randomCoords 0 = return []
 randomCoords n = do
-    x <- randomRIO (1, 6)
-    y <- randomRIO (1, 6)
+    x <- randomRIO (1, 18)
+    y <- randomRIO (1, 18)
 
     rs <- randomCoords (n-1)
 
@@ -69,18 +61,83 @@ prettyPrint n = putStrLn n
 printBoard :: Board -> Int -> String
 printBoard []     n = []
 printBoard (x@(Square (x1,y1) _ _ _):xs) n
+  | y1 == 1 && x1 == 1 = "   " ++ (reverse $ printTop n) ++ "\n" ++ (show x1) ++ " | " ++ printSquare x ++ " " ++ printBoard xs n
+  | y1 == 1 = if x1 < 10 then (show x1) ++ " | " ++ printSquare x ++ " " ++ printBoard xs n 
+    else (show x1) ++ "| " ++ printSquare x ++ " " ++ printBoard xs n
   | y1 == n = printSquare x ++ "\n" ++ printBoard xs n
-  | otherwise = printSquare x ++ printBoard xs n
+  | otherwise = printSquare x ++ " " ++ printBoard xs n
 
+printTop :: Int -> String
+printTop 0 = []
+printTop n = ['A'..'Z']!!(n-1) : " " ++ printTop (n-1)
 
 {- printSquare square
    Convert a square into an ASCII-character
 -}
 printSquare :: Square -> String
 printSquare (Square _ Hidden _ _) = "#"
-printSquare (Square _ Revealed _ 0) = " "
 printSquare (Square _ Revealed True n) = "*"
+printSquare (Square _ Revealed _ 0) = " "
 printSquare (Square _ Revealed _ n) = show n
+
+
+dupMines :: [Position] -> Bool
+dupMines mines = if length remDups < length mines then True else False
+  where remDups = map head $ group $ sort mines
+
+getMines :: Int -> IO [Position]
+getMines n = do
+  mines <- randomCoords n
+
+  if (dupMines mines) then getMines n
+    else return mines
+
+
+countMines :: Board -> Int
+countMines [] = 0 
+countMines (square@(Square _ _ True _):s) = 1 + countMines s
+countMines (square:s) = countMines s
+
+getNeighbourSquares :: Position -> Board -> Board
+getNeighbourSquares (x,y) board = [
+                    (getSquare (x-1,y-1) board),
+                    (getSquare (x-1,y) board),
+                    (getSquare (x-1,y+1) board),
+                    (getSquare (x,y-1) board),
+                    (getSquare (x,y+1) board),
+                    (getSquare (x+1,y-1) board),
+                    (getSquare (x+1,y) board),
+                    (getSquare (x+1,y+1) board)
+                    ]
+
+getSquare :: Position -> Board -> Square
+getSquare pos [] = (Square pos Hidden False 0)
+getSquare pos (square@(Square spos _ _ _):s)
+  | pos == spos = square
+  | otherwise = getSquare pos s
+
+
+countNeighbourMines :: Board -> Int
+countNeighbourMines [] = 0
+countNeighbourMines (neighbour:s) = (countMine neighbour) + countNeighbourMines s
+
+countMine :: Square -> Int
+countMine (Square _ _ True _) = 1
+countMine _ = 0
+
+
+initNeighbours :: Board -> Board -> Board
+initNeighbours [] boardcpy = []
+initNeighbours board@(square@(Square pos state mine neighbours):s) boardcpy =
+             (Square pos state mine (countNeighbourMines $ getNeighbourSquares pos boardcpy): initNeighbours s boardcpy)
+
+
+play :: Board -> IO ()
+play board = do
+
+  prettyPrint $ printBoard (initNeighbours board board) 18
+
+  putStrLn ("Minecount: " ++ (show (countMines board)))
 
 
 {- main
@@ -90,11 +147,10 @@ main :: IO ()
 main = do
     putStrLn "Welcome to Minesweeper v.000000000001"
 
-    let board = mkBoard 6
+    let board = mkBoard 18
 
-    mines <- randomCoords 6
+    mines <- getMines 20
 
     let newBoard = insertMines mines board
 
-    prettyPrint $ printBoard newBoard 6
-
+    play newBoard
