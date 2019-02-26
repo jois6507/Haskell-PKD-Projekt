@@ -17,34 +17,52 @@ type Board = [Square]
 {- mkBoard n
    Initilize the board using list comprehension, 
    this makes squares with a default value for every position set to the maximum by the input
+PRE:
+RETURNS: A minesweeper board as a list.
+SIDE EFFECTS:
+EXAMPLES: mkBoard 0 = []
+          mkBoard 1 = [Square (1,1) Revealed False 0]
+          mkBoard 3 = [Square (1,1) Revealed False 0,Square (1,2) Revealed False 0,Square (1,3) Revealed False 0,Squ          are (2,1) Revealed False 0,Square (2,2) Revealed False 0,Square (2,3) Revealed False 0,Square (3,1) Reveal          ed False 0,Square (3,2) Revealed False 0,Square (3,3) Revealed False 0]
 -}
 mkBoard :: Int -> Board
-mkBoard n = [(Square (x,y) Revealed False 0) 
+mkBoard n = [(Square (x,y) Hidden False 0) 
             | x <- [1..n], y <- [1..n]]
 
 {- insertMines mines board
-   insert a list of mines into the board
+   insert a list of mines into the board. The mines are represented as bools.
+PRE:
+RETURNS: A list with mines inserted to the borad at positions based on the given coordinates.
+SIDE EFFECTS:
+VARIANT: Length of "mines".
+EXAMPLES: insertMines [] [] = []
+          insertMines [] (mkBoard 0) = []
+          insertMines [(1,1)] (mkBoard 0) = []
+          insertMines [(1,1), (2,3)] (mkBoard 3) = [Square (1,1) Revealed True 1,Square (1,2) Revealed False 0,Squar          e (1,3) Revealed False 0,Square (2,1) Revealed False 0,Square (2,2) Revealed False 0,Square (2,3) Revealed          True 1,Square (3,1) Revealed False 0,Square (3,2) Revealed False 0,Square (3,3) Revealed False 0]
 -}
 insertMines :: [Position] -> Board -> Board
 insertMines [] board     = board
+insertMines (p:ps) []    = []
 insertMines (p:ps) board = insertMines ps (insertMine p board)
 
 insertMine :: Position -> Board -> Board
 insertMine position (square@(Square pos _ _ _):squares)
-  | position == pos = (Square pos Revealed True 1) : squares
+  | position == pos = (Square pos Hidden True 1) : squares
   | otherwise = square : insertMine position squares
 
 
 {- randomCoords n
-   Returns a list of random tuples aka positions
+   Creates a list of n random coordinates.
+PRE:
+RETURNS: A list of n random positions represented as tuples.
+SIDE EFFECTS:
+EXAMPLES: randomCoords 0 = []
+          randomCoords 2 = [(13,3),(2,9)]
 -}
-
-
 randomCoords :: Int -> IO [Position]
 randomCoords 0 = return []
 randomCoords n = do
-    x <- randomRIO (1, 18)
-    y <- randomRIO (1, 18)
+    x <- randomRIO (1, 3)
+    y <- randomRIO (1, 3)
 
     rs <- randomCoords (n-1)
 
@@ -131,13 +149,29 @@ initNeighbours [] boardcpy = []
 initNeighbours board@(square@(Square pos state mine neighbours):s) boardcpy =
              (Square pos state mine (countNeighbourMines $ getNeighbourSquares pos boardcpy): initNeighbours s boardcpy)
 
+toPosition :: String -> Position
+toPosition s = read s :: Position
+
+
+mkChoice :: Position -> Board -> Board
+mkChoice (x,y) (square@(Square pos state mine mines):s)
+  | (x,y) == pos = (Square pos Revealed mine mines) : s
+  | otherwise = square : mkChoice (x,y) s
 
 play :: Board -> IO ()
 play board = do
 
-  prettyPrint $ printBoard (initNeighbours board board) 18
+  prettyPrint $ printBoard board 3
 
-  putStrLn ("Minecount: " ++ (show (countMines board)))
+  putStrLn "Make your move"
+
+  choice <- getLine
+
+  let newBoard = mkChoice (toPosition choice) board
+
+  play newBoard
+
+
 
 
 {- main
@@ -147,10 +181,11 @@ main :: IO ()
 main = do
     putStrLn "Welcome to Minesweeper v.000000000001"
 
-    let board = mkBoard 18
+    let board = mkBoard 3
 
-    mines <- getMines 20
+    mines <- getMines 1
 
     let newBoard = insertMines mines board
+    let playBoard = initNeighbours newBoard newBoard
 
-    play newBoard
+    play playBoard
