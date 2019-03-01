@@ -47,6 +47,7 @@ insertMines (p:ps) []    = []
 insertMines (p:ps) board = insertMines ps (insertMine p board)
 
 insertMine :: Position -> Board -> Board
+insertMine _ [] = []
 insertMine position (square@(Square pos _ _ _):squares)
   | position == pos = (Square pos Hidden True 1) : squares
   | otherwise = square : insertMine position squares
@@ -60,20 +61,11 @@ SIDE EFFECTS:
 EXAMPLES: randomCoords 0 = []
           randomCoords 2 = [(13,3),(2,9)]
 -}
-randomCoords :: Int -> IO [Position]
-randomCoords 0 = return []
-randomCoords n = do
-    x <- randomRIO (1, 3)
-    y <- randomRIO (1, 3)
 
-    rs <- randomCoords (n-1)
-
-    return ((x, y) : rs)
-
-randomCoord :: IO Position
-randomCoord = do
-    x <- randomRIO (1, 18)
-    y <- randomRIO (1, 18)
+randomCoord :: Int -> IO Position
+randomCoord n = do
+    x <- randomRIO (1, n)
+    y <- randomRIO (1, n)
 
     return (x,y)
 
@@ -111,14 +103,14 @@ dupMines :: [Position] -> Bool
 dupMines mines = if length remDups < length mines then True else False
   where remDups = map head $ group $ sort mines
 
-getMines :: Int -> [Position] -> IO [Position]
-getMines 0 mines = return mines
-getMines n mines = do
-  mine <- randomCoord
+getMines :: Int -> Int -> [Position] -> IO [Position]
+getMines 0 size mines = return mines
+getMines n size mines = do
+  mine <- randomCoord size
   let mineList = (mine:mines)
 
-  if (dupMines mineList) then getMines n mines
-    else getMines (n-1) mineList
+  if (dupMines mineList) then getMines n size mines
+    else getMines (n-1) size mineList
 
 
 countMines :: Board -> Int
@@ -250,7 +242,7 @@ main = do
 
     let board = mkBoard (fst difficulty)
 
-    mines <- getMines (snd difficulty) []
+    mines <- getMines (snd difficulty) (fst difficulty) []
 
     let newBoard = insertMines mines board
     let playBoard = initNeighbours newBoard newBoard
