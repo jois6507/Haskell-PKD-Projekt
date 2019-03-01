@@ -1,7 +1,5 @@
 import System.Random
 import Data.List
-import Data.Char
-import Control.Monad
 
 type Position = (Int, Int)
 type Mine = Bool
@@ -47,7 +45,6 @@ insertMines (p:ps) []    = []
 insertMines (p:ps) board = insertMines ps (insertMine p board)
 
 insertMine :: Position -> Board -> Board
-insertMine _ [] = []
 insertMine position (square@(Square pos _ _ _):squares)
   | position == pos = (Square pos Hidden True 1) : squares
   | otherwise = square : insertMine position squares
@@ -61,13 +58,16 @@ SIDE EFFECTS:
 EXAMPLES: randomCoords 0 = []
           randomCoords 2 = [(13,3),(2,9)]
 -}
+randomCoords :: Int -> IO [Position]
+randomCoords 0 = return []
+randomCoords n = do
+    x <- randomRIO (1, 3)
+    y <- randomRIO (1, 3)
 
-randomCoord :: Int -> IO Position
-randomCoord n = do
-    x <- randomRIO (1, n)
-    y <- randomRIO (1, n)
+    rs <- randomCoords (n-1)
 
-    return (x,y)
+    return ((x, y) : rs)
+
 
 {- prettyPrint n
    Outputs the string on the terminal
@@ -87,7 +87,7 @@ printBoard (x@(Square (x1,y1) _ _ _):xs) n
 
 printTop :: Int -> String
 printTop 0 = []
-printTop n = ['a'..'z']!!(n-1) : " " ++ printTop (n-1)
+printTop n = ['A'..'Z']!!(n-1) : " " ++ printTop (n-1)
 
 {- printSquare square
    Convert a square into an ASCII-character
@@ -103,14 +103,12 @@ dupMines :: [Position] -> Bool
 dupMines mines = if length remDups < length mines then True else False
   where remDups = map head $ group $ sort mines
 
-getMines :: Int -> Int -> [Position] -> IO [Position]
-getMines 0 size mines = return mines
-getMines n size mines = do
-  mine <- randomCoord size
-  let mineList = (mine:mines)
+getMines :: Int -> IO [Position]
+getMines n = do
+  mines <- randomCoords n
 
-  if (dupMines mineList) then getMines n size mines
-    else getMines (n-1) size mineList
+  if (dupMines mines) then getMines n
+    else return mines
 
 
 countMines :: Board -> Int
@@ -118,9 +116,6 @@ countMines [] = 0
 countMines (square@(Square _ _ True _):s) = 1 + countMines s
 countMines (square:s) = countMines s
 
-{- getNeighbourSquares
-   get all surrounding squares of hte given position
--}
 getNeighbourSquares :: Position -> Board -> Board
 getNeighbourSquares (x,y) board = [
                     (getSquare (x-1,y-1) board),
@@ -133,80 +128,40 @@ getNeighbourSquares (x,y) board = [
                     (getSquare (x+1,y+1) board)
                     ]
 
-{- getSquare position board
-   get the corresponding square from the given position
--}
 getSquare :: Position -> Board -> Square
 getSquare pos [] = (Square pos Hidden False 0)
 getSquare pos (square@(Square spos _ _ _):s)
   | pos == spos = square
   | otherwise = getSquare pos s
 
-{- countNeighbourMines neighbours
-   counts all mines of neighbours
--}
+
 countNeighbourMines :: Board -> Int
 countNeighbourMines [] = 0
 countNeighbourMines (neighbour:s) = (countMine neighbour) + countNeighbourMines s
 
--- If square has a mine, this will output 1 else 0
 countMine :: Square -> Int
 countMine (Square _ _ True _) = 1
 countMine _ = 0
 
-{- initNeighbours board boardcpy
-   This function outputs a new board with NeighbourMines initialized for all squares.
--}
+
 initNeighbours :: Board -> Board -> Board
 initNeighbours [] boardcpy = []
 initNeighbours board@(square@(Square pos state mine neighbours):s) boardcpy =
              (Square pos state mine (countNeighbourMines $ getNeighbourSquares pos boardcpy): initNeighbours s boardcpy)
 
-{- mkChoice position board
-   This function takes a position and reveal the state of that square.
--}
-mkChoice :: Maybe Position -> Board -> Board
-mkChoice Nothing board = board
-mkChoice _ [] = []
-mkChoice (Just (x,y)) (square@(Square pos state mine mines):s)
+toPosition :: String -> Position
+toPosition s = read s :: Position
+
+
+mkChoice :: Position -> Board -> Board
+mkChoice (x,y) (square@(Square pos state mine mines):s)
   | (x,y) == pos = (Square pos Revealed mine mines) : s
-  | otherwise = square : mkChoice (Just (x,y)) s
+  | otherwise = square : mkChoice (x,y) s
 
-{- choiceMine position board
-   Checks if given position has a mine on it, if it does, it returns true else false.
--}
-choiceMine :: Maybe Position -> Board -> Bool
-choiceMine _ [] = False
-choiceMine Nothing board = False
-choiceMine (Just (x,y)) (square@(Square pos state mine mines):s)
-  | (x,y) == pos && mine = mine
-  | otherwise = choiceMine (Just (x,y)) s
+play :: Board -> IO ()
+play board = do
 
-{- toPosition s
-   This function translates a given move (ex. "1f") into its position (ex. (1,6))
--}
-toPosition :: String -> Maybe Position
-toPosition (i1:i2:c:[]) = if isDigit i1 && isDigit i2 && isAlpha c then Just (read (i1 : i2 : []) :: Int, chartoInt c cilist) else Nothing
-toPosition (i:c:[]) = if isDigit i && isAlpha c then Just (digitToInt i, chartoInt c cilist) else Nothing
-toPosition _ = Nothing
-
-{- chartoInt
-   Outputs the number that is mapped to the given character.
--}
-chartoInt :: Char -> [(Char,Int)] -> Int
-chartoInt c (x:xs)
-  | c == fst x = snd x
-  | otherwise = chartoInt c xs
-
--- A list of tuples where characters are mappe to the corresponding numbers.
-cilist = zip ['a'..'z'] [1..26]
-
-{- play board size
-   In this function we handle all the moves from the user,
-   check if the game is over and prints the board. 
--}
-play :: Board -> Int -> IO ()
-play board size = do
+  prettyPrint $ printBoard board 3
 
   putStrLn "Make your move"
 
@@ -214,18 +169,10 @@ play board size = do
 
   let newBoard = mkChoice (toPosition choice) board
 
-  prettyPrint $ printBoard newBoard size
+  play newBoard
 
-  if choiceMine (toPosition choice) board then putStrLn "You Lost!" else play newBoard size
 
-{- mkDifficulty s
-   Outputs the size of the board and amount of mines depending on the desired difficulty
--}
-mkDifficulty :: String -> (Int, Int)
-mkDifficulty "easy" = (3,3)
-mkDifficulty "medium" = (8,8)
-mkDifficulty "hard" = (18,18)
-mkDifficulty "custom" = undefined
+
 
 {- main
    Just testing stuff
@@ -234,19 +181,11 @@ main :: IO ()
 main = do
     putStrLn "Welcome to Minesweeper v.000000000001"
 
-    putStrLn "Please enter a difficulty (easy/medium/hard) or choose custom"
+    let board = mkBoard 3
 
-    getDifficulty <- getLine
-
-    let difficulty = mkDifficulty getDifficulty
-
-    let board = mkBoard (fst difficulty)
-
-    mines <- getMines (snd difficulty) (fst difficulty) []
+    mines <- getMines 1
 
     let newBoard = insertMines mines board
     let playBoard = initNeighbours newBoard newBoard
 
-    prettyPrint $ printBoard playBoard (fst difficulty)
-
-    play playBoard (fst difficulty)
+    play playBoard
