@@ -2,6 +2,7 @@ import System.Random
 import Data.List
 import Data.Char
 import Control.Monad
+import Debug.Trace
 
 type Position = (Int, Int)
 type Mine = Bool
@@ -100,7 +101,7 @@ printSquare (Square _ Revealed _ n) = show n
 
 
 dupMines :: [Position] -> Bool
-dupMines mines = if length remDups < length mines then True else False
+dupMines mines = length remDups < length mines
   where remDups = map head $ group $ sort mines
 
 getMines :: Int -> Int -> [Position] -> IO [Position]
@@ -122,8 +123,48 @@ countMines (square:s) = countMines s
    get all surrounding squares of hte given position
 -}
 getNeighbourSquares :: Position -> Board -> Board
-getNeighbourSquares (x,y) board = [
-                    (getSquare (x-1,y-1) board),
+getNeighbourSquares (x,y) board
+  | x == 1  && y == 1  = [(getSquare (x,y+1) board),
+                          (getSquare (x+1, y+1) board),
+                          (getSquare (x+1, y) board)
+                         ]
+  | x == 1  && y == 18 = [(getSquare (x, y-1) board),
+                          (getSquare (x+1, y-1) board),
+                          (getSquare (x+1, y) board)
+                         ]
+  | y == 1  && x == 18 = [(getSquare (x-1, y) board),
+                          (getSquare (x-1, y+1) board),
+                          (getSquare (x, y+1) board)
+                         ]
+  | y == 18 && x == 18 = [(getSquare (x, y-1) board),
+                          (getSquare (x-1, y-1) board),
+                          (getSquare (x-1, y) board)
+                         ]
+  | x == 1             = [(getSquare (x,y-1) board),
+                          (getSquare (x,y+1) board),
+                          (getSquare (x+1,y-1) board),
+                          (getSquare (x+1,y) board),
+                          (getSquare (x+1,y+1) board)
+                         ]
+  | y == 1             = [(getSquare (x-1,y) board),
+                          (getSquare (x-1,y+1) board),
+                          (getSquare (x,y+1) board),
+                          (getSquare (x+1,y) board),
+                          (getSquare (x+1,y+1) board)
+                          ]
+  | x == 18            = [(getSquare (x-1,y-1) board),
+                         (getSquare (x-1,y) board),
+                         (getSquare (x-1,y+1) board),
+                         (getSquare (x,y-1) board),
+                         (getSquare (x,y+1) board) 
+                         ]
+  | y == 18            = [(getSquare (x-1,y-1) board),
+                          (getSquare (x-1,y) board),
+                          (getSquare (x,y-1) board),
+                          (getSquare (x+1,y-1) board),
+                          (getSquare (x+1,y) board)
+                         ]
+  | otherwise =   [ (getSquare (x-1,y-1) board),
                     (getSquare (x-1,y) board),
                     (getSquare (x-1,y+1) board),
                     (getSquare (x,y-1) board),
@@ -133,12 +174,12 @@ getNeighbourSquares (x,y) board = [
                     (getSquare (x+1,y+1) board)
                     ]
 
+
 {- getSquare position board
    get the corresponding square from the given position
 -}
 getSquare :: Position -> Board -> Square
-getSquare pos [] = (Square pos Hidden False 0)
-getSquare pos (square@(Square spos _ _ _):s)
+getSquare pos (square@(Square spos state _ _):s)
   | pos == spos = square
   | otherwise = getSquare pos s
 
@@ -165,12 +206,35 @@ initNeighbours board@(square@(Square pos state mine neighbours):s) boardcpy =
 {- mkChoice position board
    This function takes a position and reveal the state of that square.
 -}
-mkChoice :: Maybe Position -> Board -> Board
-mkChoice Nothing board = board
-mkChoice _ [] = []
-mkChoice (Just (x,y)) (square@(Square pos state mine mines):s)
-  | (x,y) == pos = (Square pos Revealed mine mines) : s
-  | otherwise = square : mkChoice (Just (x,y)) s
+mkChoice :: Maybe Position -> Board -> Board -> Board
+mkChoice _ [] cpy = cpy
+mkChoice (Just (x,y)) (square@(Square pos state mine mines):xs) cpy
+  | (x,y) == pos && state == Hidden && mines == 0 && mine == False = revealNeighbours (hiddenNeighbours $ getNeighbourSquares pos cpy) (insertSquare (Square pos Revealed mine mines) cpy)
+  | (x,y) == pos && state == Hidden && mine == False = insertSquare (Square pos Revealed mine mines) cpy
+  | otherwise = mkChoice (Just (x,y)) xs cpy
+
+revealNeighbours :: [Square] -> Board -> Board
+revealNeighbours [] board = board
+revealNeighbours (x:xs) board = revealNeighbours xs (revealNeighbours' x board)
+
+
+
+revealNeighbours' :: Square -> Board -> Board
+revealNeighbours' (Square pos _ _ _) board = mkChoice (Just pos) board board
+
+insertSquare :: Square -> Board -> Board
+insertSquare _ [] = []
+insertSquare square@(Square pos1 _ _ _) (x@(Square pos2 _ _ _):xs)
+  | pos1 == pos2 = square : xs
+  | otherwise = x : insertSquare square xs
+
+getPosition :: Square -> Position
+getPosition (Square pos _ _ _) = pos
+
+hiddenNeighbours :: [Square] -> [Square]
+hiddenNeighbours [] = []
+hiddenNeighbours (x@(Square _ Hidden _ _):xs) = x : hiddenNeighbours xs
+hiddenNeighbours neighbours = hiddenNeighbours (tail neighbours)
 
 {- choiceMine position board
    Checks if given position has a mine on it, if it does, it returns true else false.
@@ -222,11 +286,13 @@ play board size = do
 
   choice <- getLine
 
-  let newBoard = mkChoice (toPosition choice) board
+  let newBoard = mkChoice (toPosition choice) board board
 
   prettyPrint $ printBoard newBoard size
 
-  if choiceMine (toPosition choice) board then putStrLn "You Lost!" else if (isWin newBoard) then putStrLn "You won!" else play newBoard size
+  if choiceMine (toPosition choice) board 
+    then putStrLn ("You Lost!\nYou hit a mine at: " ++ show choice) else if (isWin newBoard) then putStrLn "You won!"
+      else play newBoard size
 
 {- mkDifficulty s
    Outputs the size of the board and amount of mines depending on the desired difficulty
@@ -252,7 +318,7 @@ mkCustom = do
 -}
 main :: IO ()
 main = do
-    putStrLn "Welcome to Minesweeper v.000000000001"
+    putStrLn "Welcome to Minesweeper v.0.9"
 
     putStrLn "Please enter a difficulty (easy/medium/hard) or choose custom"
 
