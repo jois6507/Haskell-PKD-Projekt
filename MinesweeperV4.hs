@@ -233,7 +233,7 @@ printTop :: Int -> String
 
 printTop 0 = []
 
-printTop n = ['a'..'z']!!(n-1) : " " ++ printTop (n-1)
+printTop n = (['a'..'z'] ++ ['A'..'Z'])!!(n-1) : " " ++ printTop (n-1)
 
 
 
@@ -351,7 +351,7 @@ getNeighbourSquares (x,y) board size
 
                          ]
 
-  | x == 1             = [(getSquare (x,y-1) board),
+  | x == 1               = [(getSquare (x,y-1) board),
 
                           (getSquare (x,y+1) board),
 
@@ -363,7 +363,7 @@ getNeighbourSquares (x,y) board size
 
                          ]
 
-  | y == 1             = [(getSquare (x-1,y) board),
+  | y == 1               = [(getSquare (x-1,y) board),
 
                           (getSquare (x-1,y+1) board),
 
@@ -497,9 +497,9 @@ mkChoice _ [] cpy _ = cpy
 
 mkChoice (Just (x,y)) (square@(Square pos state mine mines):xs) cpy size
 
-  | (x,y) == pos && state == Hidden && mines == 0 && mine == False = revealNeighbours (hiddenNeighbours $ getNeighbourSquares pos cpy size) (insertSquare (Square pos Revealed mine mines) cpy) size
+  | (x,y) == pos && state == Hidden && mines == 0 = revealNeighbours (hiddenNeighbours $ getNeighbourSquares pos cpy size) (insertSquare (Square pos Revealed mine mines) cpy) size
 
-  | (x,y) == pos && state == Hidden && mine == False = insertSquare (Square pos Revealed mine mines) cpy
+  | (x,y) == pos && state == Hidden = insertSquare (Square pos Revealed mine mines) cpy
 
   | otherwise = mkChoice (Just (x,y)) xs cpy size
 
@@ -615,7 +615,7 @@ chartoInt c (x:xs)
 
 -- A list of tuples where characters are mappe to the corresponding numbers.
 
-cilist = zip ['a'..'z'] [1..26]
+cilist = zip (['a'..'z'] ++ ['A'..'Z']) [1..52]
 
 
 
@@ -717,15 +717,15 @@ mkCustom = do
 
 
 
-{- main
+{- playMinesweeper
 
    Just testing stuff
 
 -}
 
-main :: IO ()
+playMinesweeper :: IO ()
 
-main = do
+playMinesweeper = do
 
     putStrLn "Welcome to Minesweeper v.0.9"
 
