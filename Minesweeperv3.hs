@@ -122,21 +122,21 @@ countMines (square:s) = countMines s
 {- getNeighbourSquares
    get all surrounding squares of hte given position
 -}
-getNeighbourSquares :: Position -> Board -> Board
-getNeighbourSquares (x,y) board
+getNeighbourSquares :: Position -> Board -> Int -> Board
+getNeighbourSquares (x,y) board size
   | x == 1  && y == 1  = [(getSquare (x,y+1) board),
                           (getSquare (x+1, y+1) board),
                           (getSquare (x+1, y) board)
                          ]
-  | x == 1  && y == 18 = [(getSquare (x, y-1) board),
+  | x == 1  && y == size = [(getSquare (x, y-1) board),
                           (getSquare (x+1, y-1) board),
                           (getSquare (x+1, y) board)
                          ]
-  | y == 1  && x == 18 = [(getSquare (x-1, y) board),
+  | y == 1  && x == size = [(getSquare (x-1, y) board),
                           (getSquare (x-1, y+1) board),
                           (getSquare (x, y+1) board)
                          ]
-  | y == 18 && x == 18 = [(getSquare (x, y-1) board),
+  | y == size && x == size = [(getSquare (x, y-1) board),
                           (getSquare (x-1, y-1) board),
                           (getSquare (x-1, y) board)
                          ]
@@ -152,13 +152,13 @@ getNeighbourSquares (x,y) board
                           (getSquare (x+1,y) board),
                           (getSquare (x+1,y+1) board)
                           ]
-  | x == 18            = [(getSquare (x-1,y-1) board),
+  | x == size            = [(getSquare (x-1,y-1) board),
                          (getSquare (x-1,y) board),
                          (getSquare (x-1,y+1) board),
                          (getSquare (x,y-1) board),
                          (getSquare (x,y+1) board) 
                          ]
-  | y == 18            = [(getSquare (x-1,y-1) board),
+  | y == size            = [(getSquare (x-1,y-1) board),
                           (getSquare (x-1,y) board),
                           (getSquare (x,y-1) board),
                           (getSquare (x+1,y-1) board),
@@ -198,29 +198,27 @@ countMine _ = 0
 {- initNeighbours board boardcpy
    This function outputs a new board with NeighbourMines initialized for all squares.
 -}
-initNeighbours :: Board -> Board -> Board
-initNeighbours [] boardcpy = []
-initNeighbours board@(square@(Square pos state mine neighbours):s) boardcpy =
-             (Square pos state mine (countNeighbourMines $ getNeighbourSquares pos boardcpy): initNeighbours s boardcpy)
+initNeighbours :: Board -> Board -> Int -> Board
+initNeighbours [] boardcpy _ = []
+initNeighbours board@(square@(Square pos state mine neighbours):s) boardcpy size =
+             (Square pos state mine (countNeighbourMines $ getNeighbourSquares pos boardcpy size): initNeighbours s boardcpy size)
 
 {- mkChoice position board
    This function takes a position and reveal the state of that square.
 -}
-mkChoice :: Maybe Position -> Board -> Board -> Board
-mkChoice _ [] cpy = cpy
-mkChoice (Just (x,y)) (square@(Square pos state mine mines):xs) cpy
-  | (x,y) == pos && state == Hidden && mines == 0 && mine == False = revealNeighbours (hiddenNeighbours $ getNeighbourSquares pos cpy) (insertSquare (Square pos Revealed mine mines) cpy)
+mkChoice :: Maybe Position -> Board -> Board -> Int -> Board
+mkChoice _ [] cpy _ = cpy
+mkChoice (Just (x,y)) (square@(Square pos state mine mines):xs) cpy size
+  | (x,y) == pos && state == Hidden && mines == 0 && mine == False = revealNeighbours (hiddenNeighbours $ getNeighbourSquares pos cpy size) (insertSquare (Square pos Revealed mine mines) cpy) size
   | (x,y) == pos && state == Hidden && mine == False = insertSquare (Square pos Revealed mine mines) cpy
-  | otherwise = mkChoice (Just (x,y)) xs cpy
+  | otherwise = mkChoice (Just (x,y)) xs cpy size
 
-revealNeighbours :: [Square] -> Board -> Board
-revealNeighbours [] board = board
-revealNeighbours (x:xs) board = revealNeighbours xs (revealNeighbours' x board)
+revealNeighbours :: [Square] -> Board -> Int -> Board
+revealNeighbours [] board _ = board
+revealNeighbours (x:xs) board size = revealNeighbours xs (revealNeighbours' x board size) size
 
-
-
-revealNeighbours' :: Square -> Board -> Board
-revealNeighbours' (Square pos _ _ _) board = mkChoice (Just pos) board board
+revealNeighbours' :: Square -> Board -> Int -> Board
+revealNeighbours' (Square pos _ _ _) board size = mkChoice (Just pos) board board size
 
 insertSquare :: Square -> Board -> Board
 insertSquare _ [] = []
@@ -286,7 +284,7 @@ play board size = do
 
   choice <- getLine
 
-  let newBoard = mkChoice (toPosition choice) board board
+  let newBoard = mkChoice (toPosition choice) board board size
 
   prettyPrint $ printBoard newBoard size
 
@@ -331,7 +329,7 @@ main = do
     mines <- getMines (snd difficulty) (fst difficulty) []
 
     let newBoard = insertMines mines board
-    let playBoard = initNeighbours newBoard newBoard
+    let playBoard = initNeighbours newBoard newBoard (fst difficulty)
 
     prettyPrint $ printBoard playBoard (fst difficulty)
 
