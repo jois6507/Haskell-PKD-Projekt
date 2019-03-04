@@ -1,3 +1,7 @@
+-- PKD-project Minesweeper
+-- Group 24
+-- Made by: Johan Haag, Daniel Bäckner, Axel Nilsson
+
 
 import System.Random
 import Data.List
