@@ -782,7 +782,7 @@ test23 = TestCase (assertEqual "for (toPosition \"\")," Nothing (toPosition ""))
 test24 = TestCase (assertEqual "for (toPosition \"a1\")," Nothing (toPosition "a1"))
 test25 = TestCase (assertEqual "for (toPosition \"1b\")," (Just (1,2)) (toPosition "1b"))
 
--- isWin :: Board -> Bool
+-- isWin
 test26 = TestCase (assertEqual "for (isWin (mkBoard 3))," False (isWin (mkBoard 3)))
 test27 = TestCase (assertEqual "for (isWin (insertMines [(1,1)] (mkBoard 3)))," False (isWin (insertMines [(1,1)] (mkBoard 3))))
 test28 = TestCase (assertEqual "for (isWin [Square (1,1) Revealed False 0 False,Square (1,2) Revealed False 0 False,Square (2,1) Revealed False 0 False,Square (2,2) Revealed False 0 False])," True (isWin [Square (1,1) Revealed False 0 False,Square (1,2) Revealed False 0 False,Square (2,1) Revealed False 0 False,Square (2,2) Revealed False 0 False]))
