@@ -18,7 +18,6 @@ type Position = (Int, Int)
 this datatype represents the mines on the board as bools when a square is opened.
 HOW
 INVARIANT:
-
 -}
 
 type Mine = Bool
@@ -27,7 +26,6 @@ type Mine = Bool
 NeighbourMines represent the integers on the board, which indicates how many mines there are adjacent to the current square.
 HOW:
 INVARIANT:
-
 -}
 
 type NeighbourMines = Int
@@ -36,7 +34,6 @@ type NeighbourMines = Int
 {- Flag
 HOW:
 INVARIANT:
-
 -}
 
 type Flag = Bool
@@ -64,7 +61,6 @@ SIDE EFFECTS:
 EXAMPLES: mkBoard 0 = []
           mkBoard 1 = [Square (1,1) Revealed False 0]
           mkBoard 3 = [Square (1,1) Revealed False 0,Square (1,2) Revealed False 0,Square (1,3) Revealed False 0,Squ          are (2,1) Revealed False 0,Square (2,2) Revealed False 0,Square (2,3) Revealed False 0,Square (3,1) Reveal          ed False 0,Square (3,2) Revealed False 0,Square (3,3) Revealed False 0]
-
 -}
 
 mkBoard :: Int -> Board
@@ -82,7 +78,6 @@ EXAMPLES: insertMines [] [] = []
           insertMines [] (mkBoard 0) = []
           insertMines [(1,1)] (mkBoard 0) = []
           insertMines [(1,1), (2,3)] (mkBoard 3) = [Square (1,1) Revealed True 1,Square (1,2) Revealed False 0,Squar          e (1,3) Revealed False 0,Square (2,1) Revealed False 0,Square (2,2) Revealed False 0,Square (2,3) Revealed          True 1,Square (3,1) Revealed False 0,Square (3,2) Revealed False 0,Square (3,3) Revealed False 0]
-
 -}
 
 insertMines :: [Position] -> Board -> Board
@@ -134,7 +129,6 @@ SIDE EFFECTS:
 EXAMPLES: prettyPrint "" =
           prettyPrint "Hello World!" = Hello World!
           prettyPrint "I love numbers: 123234" = I love numbers: 123234  
-
 -}
 
 
@@ -143,7 +137,6 @@ prettyPrint n = putStrLn n
 
 
 {- printBoard (x@(Square (x1,y1) _ _ _):xs) n
-
 PRE:
 RETURNS:
 SIDE EFFECTS:
@@ -170,7 +163,6 @@ SIDE EFFECTS:
 EXAMPLES: printTop 0 = ""
           printTop 26 = "z y x w v u t s r q p o n m l k j i h g f e d c b a "
           printTop 27 = "Nice try! The alphabet is not that long"     
-
 -}
 
 printTop :: Int -> String
@@ -183,7 +175,6 @@ PRE:
 RETURNS: An ASCII-character fulfilling the given condition.
 SIDE EFFECTS:
 EXAMPLES: 
-
 -}
 
 
@@ -204,7 +195,6 @@ EXAMPLES: dupMines [] = False
           dupMines [(1,2), (1,5)] = False
           dupMines [(1,5),(1,5)] = True
           dupMines [(1,5),(1,5), (1,3)] = True
-
 -}
 
 
@@ -214,12 +204,10 @@ dupMines mines = length remDups < length mines
 
 
 {- getMines n size mines
-
 PRE:
 RETURNS:
 SIDE EFFECTS:
 EXAMPLES:
-
 -}
 
 
@@ -245,7 +233,6 @@ VARIANT: Length (square:s)
 EXAMPLES: countMines [] = 0
           countMines [Square (1,1) Revealed True 0,Square (1,2) Hidden False 0,Square (2,1) Hidden False 0,Square (2,2) Hidden True 0] = 2
           countMines [Square (1,1) Hidden False 0,Square (1,2) Hidden False 0,Square (2,1) Hidden False 0,Square (2,2) Hidden True 0] = 1
-
 -}
 
 
@@ -261,8 +248,6 @@ PRE:
 RETURNS:
 SIDE EFFECTS:
 EXAMPLES:
-
-
 -}
 
 
@@ -341,9 +326,6 @@ PRE:
 RETURNS:
 SIDE EFFECTS:
 EXAMPLES:
-
-
-
 -}
 
 getSquare :: Position -> Board -> Square
@@ -354,9 +336,6 @@ getSquare pos (square@(Square spos _ _ _ _):s)
 
 {- countNeighbourMines neighbours
 Counts all mines of neighbours.
-
-
-
 -}
 
 
@@ -365,7 +344,6 @@ countNeighbourMines [] = 0
 countNeighbourMines (neighbour:s) = (countMine neighbour) + countNeighbourMines s
 
 {-countMine (Square _ _ _ _
-
 -}
 
 -- If square has a mine, this will output 1 else 0
@@ -376,7 +354,6 @@ countMine _ = 0
 
 {- initNeighbours board boardcpy
    This function outputs a new board with NeighbourMines initialized for all squares.
-
 -}
 
 initNeighbours :: Board -> Board -> Int -> Board
@@ -387,7 +364,6 @@ initNeighbours board@(square@(Square pos state mine neighbours flag):s) boardcpy
 
 {- mkChoice position board
    This function takes a position and reveal the state of that square.
-
 -}
 
 mkChoice :: Maybe Position -> Board -> Board -> Int -> Board
@@ -399,7 +375,6 @@ mkChoice (Just (x,y)) (square@(Square pos state mine mines flag):xs) cpy size
 
 
 {- revealNeighbours COORDINATES!?!?!?  board size
-
 -}
 
 revealNeighbours :: [Square] -> Board -> Int -> Board
@@ -414,7 +389,6 @@ revealNeighbours' (Square pos _ _ _ _) board size = mkChoice (Just pos) board bo
 
 
 {-insertSquare square@(Square pos1 _ _ _) (x@(Square pos2 _ _ _):xs)
-
 -}
 
 insertSquare :: Square -> Board -> Board
@@ -425,14 +399,12 @@ insertSquare square@(Square pos1 _ _ _ _) (x@(Square pos2 _ _ _ _):xs)
 
 
 {-getPosition (Square pos _ _ _)
-
 -}
 getPosition :: Square -> Position
 getPosition (Square pos _ _ _ _) = pos
 
 
 {-hiddenNeighbours neighbours
-
 -}
 
 hiddenNeighbours :: [Square] -> [Square]
@@ -443,7 +415,6 @@ hiddenNeighbours neighbours = hiddenNeighbours (tail neighbours)
 
 {- choiceMine position board
    Checks if given position has a mine on it, if it does, it returns true else false.
-
 -}
 
 choiceMine :: Maybe Position -> Board -> Bool
@@ -464,7 +435,6 @@ mkFlag (Just (x,y)) (square@(Square pos state mine mines flag):s)
 
 {- toPosition s
    This function translates a given move (ex. "1f") into its position (ex. (1,6))
-
 -}
 
 toPosition :: String -> Maybe Position
@@ -474,7 +444,6 @@ toPosition (i:c:[]) = if isDigit i && isAlpha c then Just (digitToInt i, chartoI
 
 {- chartoInt
    Outputs the number that is mapped to the given character.
-
 -}
 
 chartoInt :: Char -> [(Char,Int)] -> Int
@@ -483,7 +452,6 @@ chartoInt c (x:xs)
   | otherwise = chartoInt c xs
 
 {- cilist
-
 -}
 -- A list of tuples where characters are mappe to the corresponding numbers.
 cilist = zip (['a'..'z'] ++ ['A'..'Z']) [1..52]
@@ -491,7 +459,6 @@ cilist = zip (['a'..'z'] ++ ['A'..'Z']) [1..52]
 
 {- isWin board
    Checks if all squares are revealed (not counting the squares that has mines)
-
 -}
 
 isWin :: Board -> Bool
@@ -506,7 +473,6 @@ isWin (square@(Square pos state mine mines flag):s)
 {- play board size
    In this function we handle all the moves from the user,
    check if the game is over and prints the board. 
-
 -}
 
 play :: Board -> Int -> IO ()
@@ -530,8 +496,13 @@ play board size = do
 
 
 {- mkDifficulty s
-   Outputs the size of the board and amount of mines depending on the desired difficulty
-
+Outputs the size of the board and amount of mines depending on the desired difficulty
+PRE: True.
+RETURNS: A tuple where x is the size of the boards axes and y is the number of mines.
+SIDE EFFECTS:
+EXAMPLES: mkDifficulty "easy" = (3,1)
+          mkDifficulty "Custom" = mkCustom
+          mkDifficulty "Hello World!" = getDifficulty
 -}
 
 mkDifficulty :: String -> IO (Int, Int)
@@ -542,7 +513,6 @@ mkDifficulty "custom" = mkCustom
 mkDifficulty _ = getDifficulty
 
 {- getDifficulty
-
 -}
 
 getDifficulty :: IO (Int, Int)
@@ -557,7 +527,6 @@ getDifficulty = do
   return difficulty
 
 {-mkCustom
-
 -}
 
 mkCustom :: IO (Int, Int)
@@ -576,7 +545,6 @@ mkCustom  = do
 
 
 {- getBoardChoice
-
 -}
 
 getBoardChoice :: IO String
@@ -604,7 +572,6 @@ getBoardChoice = do
 
 
 {- getMineChoice size
-
 -}
 
 getMineChoice :: Int -> IO String  
@@ -626,7 +593,7 @@ getMineChoice size = do
 
   else if mineChoiceInt > maxSize then do
 
-    putStrLn $ "Invalid size, maximum size is: " ++ (show maxSize)
+    putStrLn $ "Invalid amount, maximum amount is: " ++ (show maxSize)
 
     getMineChoice size
 
@@ -634,7 +601,14 @@ getMineChoice size = do
 
 
 {- checkValidInt strInt
-
+Checks if a string consists of only integers or not.
+PRE: True.
+RETURNS: A boolean that tells the user if theres only integers or not in the string.
+SIDE EFFECTS: True.
+EXAMPLES: checkValidInt "" = False
+          checkValidInt "12345" = True
+          checkValidInt "1234,5" = False
+          checkValidInt "Hello World!" = False
 -}
 
 checkValidInt :: String -> Bool
@@ -663,3 +637,4 @@ playMinesweeper = do
     prettyPrint $ printBoard playBoard size
 
     play playBoard size
+
