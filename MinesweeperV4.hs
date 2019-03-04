@@ -8,6 +8,10 @@ import Data.Char
 
 import Control.Monad
 
+import Data.Maybe
+
+import Text.Read
+
 import Debug.Trace
 
 
@@ -693,28 +697,83 @@ mkDifficulty "hard" = return (18,18)
 
 mkDifficulty "custom" = mkCustom
 
+mkDifficulty _ = getDifficulty
+
+
+{- getDifficulty
+
+-}
+
+getDifficulty :: IO (Int, Int)
+getDifficulty = do
+  putStrLn "Please enter a difficulty (easy/medium/hard) or choose custom"
+
+  stringDifficulty <- getLine
+
+  difficulty <- mkDifficulty stringDifficulty
+
+  return difficulty
+
+
 {-mkCustom
 
 -}
 
-mkCustom = do
+mkCustom :: IO (Int, Int)
+mkCustom  = do
 
-  putStrLn "Enter the breadth size of the board"
+  boardChoice <- getBoardChoice
+  let boardChoiceInt = (read boardChoice :: Int)
+  
+  mineChoice <- getMineChoice boardChoiceInt
+  let mineChoiceInt = (read boardChoice :: Int)
 
+  return (boardChoiceInt, mineChoiceInt)
+
+
+{- getBoardChoice
+
+-}
+
+getBoardChoice :: IO String
+getBoardChoice = do
+  putStrLn "Enter the size of the board"
   boardChoice <- getLine
-
+  let boardChoiceInt = (read boardChoice :: Int)
+  if not $ checkValidInt boardChoice then do
+    putStrLn "Invalid type, size is of type Int"
+    getBoardChoice  
+  else if boardChoiceInt > 52 then do
+    putStrLn "Invalid size, maximum size is: 52"
+    getBoardChoice
+  else return boardChoice
   
 
-  putStrLn "Enther the number of mines on the board"
+{- getMineChoice size
 
+-}
+
+getMineChoice :: Int -> IO String  
+getMineChoice size = do
+  putStrLn "Enter the number of mines on the board"
   mineChoice <- getLine
+  let mineChoiceInt = (read mineChoice :: Int)
+  let maxSize = size * size - 1
+  if not $ checkValidInt mineChoice then do
+    putStrLn "Invalid type, amount is of type Int"
+    getMineChoice size
+  else if mineChoiceInt > maxSize then do
+    putStrLn $ "Invalid size, maximum size is: " ++ (show maxSize)
+    getMineChoice size
+  else return mineChoice
 
 
+{- checkValidInt strInt
 
-  return ((read (boardChoice) :: Int,read (mineChoice) :: Int))
+-}
 
-
-
+checkValidInt :: String -> Bool
+checkValidInt strInt = isJust (readMaybe strInt :: Maybe Int)
 
 
 {- playMinesweeper
@@ -730,35 +789,25 @@ playMinesweeper = do
     putStrLn "Welcome to Minesweeper v.0.9"
 
 
-
-    putStrLn "Please enter a difficulty (easy/medium/hard) or choose custom"
-
+    (size, mineAmount) <- getDifficulty
 
 
-    getDifficulty <- getLine
+    let board = mkBoard size
 
 
 
-    difficulty <- mkDifficulty getDifficulty
-
-
-
-    let board = mkBoard (fst difficulty)
-
-
-
-    mines <- getMines (snd difficulty) (fst difficulty) []
+    mines <- getMines mineAmount size []
 
 
 
     let newBoard = insertMines mines board
 
-    let playBoard = initNeighbours newBoard newBoard (fst difficulty)
+    let playBoard = initNeighbours newBoard newBoard size
 
 
 
-    prettyPrint $ printBoard playBoard (fst difficulty)
+    prettyPrint $ printBoard playBoard size
 
 
 
-    play playBoard (fst difficulty)
+    play playBoard size
