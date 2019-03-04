@@ -497,6 +497,8 @@ initNeighbours board@(square@(Square pos state mine neighbours):s) boardcpy size
 
 mkChoice :: Maybe Position -> Board -> Board -> Int -> Board
 
+mkChoice Nothing _ cpy _ = cpy
+
 mkChoice _ [] cpy _ = cpy
 
 mkChoice (Just (x,y)) (square@(Square pos state mine mines):xs) cpy size
